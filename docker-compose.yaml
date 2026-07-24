@@ -1,0 +1,23 @@
+services:
+  auth:
+    build: ./auth-api
+    ports:
+      - '8000:3000'
+    environment:
+      TOKEN_KEY: 'shouldbeverysecure'
+  users:
+    build: ./users-api
+    ports:
+      - '8080:3000'
+    env_file:
+      - .env
+  tasks:
+    build: ./tasks-api
+    ports:
+      - '3000:3000'
+    env_file:
+      - .env
+  mongo-db:
+    image: mongo:7.0
+    env_file:
+      - mongo.env
