@@ -16,13 +16,15 @@ Mongodb is used for storing users with their tokens, which then utilised in fore
 To deploy the project to eks can be used several variants: aws CLI + Console, eksctl or terraform. 
 Here will be considered eksctl and then added terraform approach for automation pipelines.
 
+**Note**: Eksctl and kubectl must be installed on your machine.
+
 **Eksctl approach**
 To EKS work properly must be configured the following resources: IAM Roles, Vpcs, Security groups, subnets.
 For testing purposes and for preventing draining money - will be used 1 az with 2 subnets (private + public). 
 IAM Roles: For eksctl you don't need to provide cluster and node roles. You need to do it, only if you have existing roles. In this case they must be included into a cfg file.
 VPC: eksctl will create a VPC for you by default if you don't specify one (existing or a vpc which you want to create)
 
-Creating cluster.
+**Creating cluster.**
 In this example will be considered creation of eks with cfg `cluster.yaml` file.
 Next, run this command
 eksctl create cluster -f cluster.yaml
