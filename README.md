@@ -14,25 +14,24 @@ Both user and task api uses auth api internally
 Mongodb is used for storing users with their tokens, which then utilised in foreseen requests.
 
 To deploy the project to eks can be used several variants: aws CLI + Console, eksctl or terraform. 
-Here will be considered eksctl and then added terraform approach for automation pipelines.
+Here will be considered cli + console and terraform approaches.
 
-**Note**: Eksctl and kubectl must be installed on your machine.
+**Note**: kubectl must be installed on your machine.
 
-**Eksctl approach**
-To EKS work properly must be configured the following resources: IAM Roles, Vpcs, Security groups, subnets.
+**aws CLI + Console approach**
+To EKS work properly the following resources must be configured: IAM Roles, Vpcs, Security groups, subnets.
 For testing purposes and for preventing draining money - will be used 1 az with 2 subnets (private + public). 
-IAM Roles: For eksctl you don't need to provide cluster and node roles. You need to do it, only if you have existing roles. In this case they must be included into a cfg file.
-VPC: eksctl will create a VPC for you by default if you don't specify one (existing or a vpc which you want to create)
 
-**Creating cluster.**
-In this example will be considered creation of eks with cfg `cluster.yaml` file.
-Next, run this command
-eksctl create cluster -f cluster.yaml
-Updating kubeconfig file can be skipped, because eksctl already completed this step for you
-
+**Prerequisits:**
+- IAM Roles: Roles for Nodes and Cluster have to be configured.
+- VPC: Is located under vpc-config stack, should be deployed with cloudFormation
+- Update kubeconfig
+- Create Security Groups for EFS. This must be attached to VPC which was created specifically to EKS
+- Create Cluster from aws tutorial: https://docs.aws.amazon.com/eks/latest/userguide/getting-started-console.html
+- Install CSI EFS driver on cluster https://github.com/kubernetes-sigs/aws-efs-csi-driver. Driver permissions need to be set up.
+- Create nodes with t3.small instances and 5-10 Gi storage.
+  
 To check cluster is working:
 kubectl get all -o wide
 
-To delete this cluster, run:
-eksctl delete cluster -f --wait cluster.yaml
-eksctl delete cluster --name my-cluster --region region-code
+
