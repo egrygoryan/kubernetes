@@ -34,4 +34,5 @@ For testing purposes and for preventing draining money - will be used 1 az with 
 To check cluster is working:
 kubectl get all -o wide
 
+For installing efs driver navigate through this guide https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html
 
