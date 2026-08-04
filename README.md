@@ -36,3 +36,14 @@ kubectl get all -o wide
 
 For installing efs driver navigate through this guide https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html
 
+Current plan:
+1. comment code with efs part. (look thoroughly through yamls where mount is used, specifically users.yaml. then users.app / users.routes etc.)
+2. build and  push image to docker hub
+3. test locally
+4. deploy cluster, vpc, nodes, roles, kupdate cubeconfig via cli!
+5. test stack
+6. delete all resources
+7. migrate to terraform
+8. test deployment with terraform
+9. add efs driver
+10. test with efs driver
