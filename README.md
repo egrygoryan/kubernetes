@@ -37,9 +37,9 @@ kubectl get all -o wide
 For installing efs driver navigate through this guide https://docs.aws.amazon.com/eks/latest/userguide/efs-csi.html
 
 Current plan:
-1. comment code with efs part. (look thoroughly through yamls where mount is used, specifically users.yaml. then users.app / users.routes etc.)
-2. build and  push image to docker hub
-3. test locally
+1. comment code with efs part. (look thoroughly through yamls where mount is used, specifically users.yaml. then users.app / users.routes etc.) - done
+2. build and  push image to docker hub - done
+3. test locally - done
 4. deploy cluster, vpc, nodes, roles, kupdate cubeconfig via cli!
 5. test stack
 6. delete all resources
