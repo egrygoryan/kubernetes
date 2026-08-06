@@ -47,3 +47,13 @@ Current plan:
 8. test deployment with terraform
 9. add efs driver
 10. test with efs driver
+
+**Key notes to consider while deploying:**
+1. AmazonEKSClusterRole and AmazonEKSNodeRole roles for cluster and nodes are needed.
+2. Eks requires to create control plane in 2 different AZs. For this setup pub-subnet and private-subnet in AZ 1 and pub-subnet in AZ 2 can be used, with 1 NAT Gateway.
+3. EC2 instances must be size t3.small and bigger.
+4. Instances have their own limits on pods creation, e.g. t3.small can contain 11 pods simultaneously.
+5. Select minimum 2 nodes to workaround the problem from point 4 or use bigger instances.
+6. Next addons are needed : VPC-CNI, kube-proxy, Core-DNS + 1 another (they are selected by default) + custom addons for metrics: Metrics Server
+7. 2 LoadBalancers are created for users and tasks services, think how to combine them into 1 (for cost saving)
+8. Security group for efs needs to be created
