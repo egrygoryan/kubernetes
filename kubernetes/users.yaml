@@ -1,17 +1,15 @@
-#Commented parts are related to logging to efs, which will be implemented lately
-
-# apiVersion: v1
-# kind: PersistentVolumeClaim
-# metadata:
-#   name: efs-pvc
-# spec:
-#   accessModes:
-#     #- ReadWriteMany
-#     - ReadWriteOnce
-#   storageClassName: efs-sc
-#   resources:
-#     requests:
-#       storage: 5Gi
+#This Pvc is bound to efs csi driver.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: efs-pvc
+spec:
+  accessModes:
+    - ReadWriteMany  # access from multiple nodes
+  storageClassName: efs-sc
+  resources:
+    requests:
+      storage: 5Gi
 ---      
 apiVersion: v1
 kind: Service
@@ -42,7 +40,7 @@ spec:
     spec:
       containers:
         - name: users-api
-          image: ehryhorian/eks-users-api:1.0.1-no-efs
+          image: ehryhorian/eks-users-api:1.0
           env:
             - name: MONGO_USER
               value: 'edward'
@@ -52,11 +50,11 @@ spec:
               value: 'db-service.default:27017'
             - name: AUTH_API_ADDRESS
               value: 'auth-service.default:3000'
-      #     volumeMounts:
-      #       - name: efs-vol
-      #         mountPath: /app/users
+          volumeMounts:
+            - name: efs-vol
+              mountPath: /app/users
               
-      # volumes:
-      #   - name: efs-vol
-      #     persistentVolumeClaim:
-      #       claimName: efs-pvc
+      volumes:
+        - name: efs-vol
+          persistentVolumeClaim:
+            claimName: efs-pvc
