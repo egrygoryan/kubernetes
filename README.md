@@ -42,4 +42,7 @@ parameters:
   #other params ommitted for brevity
 `
 5. Deploy all resources to aws eks `kubectl apply -f ../kubernetes`
-6. To check k8s resources are running: `kubectl get all -o wide` 
+6. To check k8s resources are running: `kubectl get all -o wide`
+
+## Documentation
+1. [EFS Setup](docs/EFS%20on%20EKS%20setup.md)
