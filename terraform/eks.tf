@@ -3,7 +3,7 @@ resource "aws_eks_cluster" "this" {
 
   #not clear parameter
   access_config {
-    authentication_mode = "API"
+    authentication_mode                         = "API"
     bootstrap_cluster_creator_admin_permissions = true
   }
 
@@ -49,12 +49,12 @@ resource "aws_eks_cluster" "this" {
   ]
 
   tags = {
-    "Description" = "Created with Terraform"
+    Description = local.Description
   }
 }
 
 resource "aws_iam_role" "eks_cluster_role" {
-  name = "eks-cluster-role"
+  name = "AmazonEKSClusterRole"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -75,11 +75,6 @@ resource "aws_iam_role" "eks_cluster_role" {
 resource "aws_iam_role_policy_attachment" "AmazonEKSClusterPolicy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
   role       = aws_iam_role.eks_cluster_role.name
-}
-
-resource "aws_eks_addon" "metrics_addon" {
-  cluster_name = aws_eks_cluster.this.name
-  addon_name   = "metrics-server"
 }
 
 resource "aws_eks_node_group" "this" {
@@ -107,7 +102,7 @@ resource "aws_eks_node_group" "this" {
 }
 
 resource "aws_iam_role" "eks_node_group_role" {
-  name = "eks-node-group-role"
+  name = "AmazonEKSNodeGroupRole"
 
   assume_role_policy = jsonencode({
     Statement = [{
@@ -134,4 +129,107 @@ resource "aws_iam_role_policy_attachment" "AmazonEKS_CNI_Policy" {
 resource "aws_iam_role_policy_attachment" "AmazonEC2ContainerRegistryReadOnly" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
   role       = aws_iam_role.eks_node_group_role.name
+}
+
+resource "aws_eks_addon" "metrics" {
+  cluster_name  = aws_eks_cluster.this.name
+  addon_name    = "metrics-server"
+  addon_version = "v0.9.0-eksbuild.7"
+
+  depends_on = [aws_eks_node_group.this]
+}
+
+resource "aws_eks_addon" "efs_csi_driver" {
+  cluster_name  = aws_eks_cluster.this.name
+  addon_name    = "aws-efs-csi-driver"
+  addon_version = "v3.4.2-eksbuild.1"
+
+  pod_identity_association {
+    role_arn        = aws_iam_role.efs_csi_driver_role.arn
+    service_account = "efs-csi-controller-sa"
+  }
+
+  depends_on = [
+    aws_iam_role_policy_attachment.AmazonEFSCSIDriverPolicy,
+    aws_eks_addon.pod_identity_agent,
+    aws_eks_node_group.this
+  ]
+}
+
+resource "aws_eks_addon" "pod_identity_agent" {
+  cluster_name  = aws_eks_cluster.this.name
+  addon_name    = "eks-pod-identity-agent"
+  addon_version = "v1.3.10-eksbuild.3"
+
+  depends_on = [aws_eks_node_group.this]
+}
+
+#---------------EFS FILESYSTEM PART------------------
+resource "aws_efs_file_system" "this" {
+  creation_token = "efs-eks"
+  encrypted      = true
+
+  tags = {
+    Description = local.Description
+  }
+}
+resource "aws_efs_mount_target" "alpha" {
+  file_system_id  = aws_efs_file_system.this.id
+  subnet_id       = aws_subnet.private_subnet_01.id
+  security_groups = [aws_security_group.efs.id]
+}
+
+resource "aws_security_group" "efs" {
+  name        = "efs-sg"
+  description = "Allow inbound traffic on port 2049"
+  vpc_id      = aws_vpc.eks_vpc.id
+}
+
+resource "aws_vpc_security_group_egress_rule" "egress_efs" {
+  security_group_id = aws_security_group.efs.id
+  description       = "Allow all outbound traffic to all ipv4 destinations"
+
+  cidr_ipv4   = "0.0.0.0/0"
+  ip_protocol = "-1"
+}
+
+resource "aws_vpc_security_group_ingress_rule" "ingress_efs" {
+  security_group_id = aws_security_group.efs.id
+  description       = "Allow inbound traffic on port 2049"
+
+  ip_protocol = "tcp"
+  from_port   = 2049
+  to_port     = 2049
+  cidr_ipv4   = aws_subnet.private_subnet_01.cidr_block
+}
+
+
+#---------------EFS CSI DRIVER'S ROLE------------------
+resource "aws_iam_role" "efs_csi_driver_role" {
+  name = "AmazonEFSCSIDriverRole"
+
+  assume_role_policy = jsonencode(
+    {
+      Version = "2012-10-17",
+      Statement = [{
+        Sid    = "AllowEksAuthToAssumeRoleForPodIdentity",
+        Effect = "Allow",
+        Principal = {
+          Service = "pods.eks.amazonaws.com"
+        },
+        Action = [
+          "sts:AssumeRole",
+          "sts:TagSession"
+        ]
+      }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "AmazonEFSCSIDriverPolicy" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEFSCSIDriverPolicy"
+  role       = aws_iam_role.efs_csi_driver_role.name
+}
+
+locals {
+  Description = "Created with Terraform"
 }
