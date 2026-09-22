@@ -1,0 +1,15 @@
+name: Check existence of users/ folder
+on:
+  push:
+    paths: 
+      - 'users-api/'
+jobs:
+  check_users:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v7
+      - name: Test folder existence
+        run: | 
+            chmod 500 ./scripts/check_path.sh
+            ./scripts/check_path.sh
