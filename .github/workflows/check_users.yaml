@@ -2,7 +2,7 @@ name: Check existence of users/ folder
 on:
   push:
     paths: 
-      - 'users-api/'
+      - 'users-api/**'
 jobs:
   check_users:
     runs-on: ubuntu-latest
