@@ -1,0 +1,48 @@
+name: Terraform plan on pull requests
+on:
+    pull_request:
+        branches: [main]
+        paths: ['terraform/**']
+env:
+  TF_VERSION: "1.15.8"
+  AWS_REGION: "eu-north-1"
+permissions:
+  id-token: write # allows the workflow to request (fetch) and use (set) an OIDC token for an action or step.
+jobs:
+    plan:
+        runs-on: ubuntu-latest
+        defaults:
+          run:
+            working-directory: ./terraform
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v7
+
+            - name: Configure AWS credentials via OIDC
+              uses: aws-actions/configure-aws-credentials@v6.3.0
+              with:
+                aws-region: ${{ env.AWS_REGION }}
+                role-to-assume: ${{ vars.TF_AWS_ROLE_ARN }}
+                role-session-name: ${{ github.run_id }} # will show which AWS actions were performed by which workflow run.
+
+            - name: Setup terraform CLI
+              uses: hashicorp/setup-terraform@v4
+              with:
+                terraform_version: ${{ env.TF_VERSION }}
+              
+            - name: Terraform format
+              run: terraform fmt -recursive -check -no-color # recursive is here for convenience, mb in the next iterations  nested folders will be added
+            
+            - name: Terraform init
+              run: terraform init -input=false -no-color
+
+            - name: Terraform validate
+              run: terraform validate 
+
+            - name: Terraform plan
+              run: terraform plan -input=false -lock-timeout=5m -no-color -out=tfplan
+            
+            - name: Read plan
+              run: terraform show -no-color tfplan
+
+        # - need to put output to pull request
