@@ -8,6 +8,7 @@ env:
   AWS_REGION: "eu-north-1"
 permissions:
   id-token: write # allows the workflow to request (fetch) and use (set) an OIDC token for an action or step.
+  contents: read # allows the runner to read content of repo
 jobs:
     plan:
         runs-on: ubuntu-latest
