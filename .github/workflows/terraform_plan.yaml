@@ -9,6 +9,7 @@ env:
 permissions:
   id-token: write # allows the workflow to request (fetch) and use (set) an OIDC token for an action or step.
   contents: read # allows the runner to read content of repo
+  pull-requests: write # allows to create or update comments on prs
 jobs:
     plan:
         runs-on: ubuntu-latest
@@ -32,7 +33,7 @@ jobs:
                 terraform_version: ${{ env.TF_VERSION }}
               
             - name: Terraform format
-              run: terraform fmt -recursive -check -no-color # recursive is here for convenience, mb in the next iterations  nested folders will be added
+              run: terraform fmt -recursive -check -no-color # recursive is here for convenience, mb in the next iterations nested folders will be added
             
             - name: Terraform init
               run: terraform init -input=false -no-color
@@ -41,9 +42,55 @@ jobs:
               run: terraform validate 
 
             - name: Terraform plan
+              id: plan
               run: terraform plan -input=false -lock-timeout=5m -no-color -out=tfplan
-            
-            - name: Read plan
-              run: terraform show -no-color tfplan
 
-        # - need to put output to pull request
+            - name: Add plan to the job summary
+              run: |
+               {
+                 echo '### Terraform plan'
+                 echo '```'
+                 terraform show -no-color tfplan | head -c 60000
+                 echo '```'
+               } >> "$GITHUB_STEP_SUMMARY"
+
+            - uses: actions/github-script@v7
+              if: github.event_name == 'pull_request'
+              env:
+                PLAN: "${{ steps.plan.outputs.stdout }}"
+              with:
+                github-token: ${{ secrets.GITHUB_TOKEN }}
+                script: |
+                  const { data: comments } = await github.rest.issues.listComments({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.issue.number,
+                  })
+                  const botComment = comments.find(comment => {
+                    return comment.user.type === 'Bot' && comment.body.includes('Terraform Format and Style')
+                  })
+
+                  const output = `#### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+                  <details><summary>Show Plan</summary>
+            
+                  \`\`\`
+                  ${process.env.PLAN}
+                  \`\`\`
+            
+                  </details>`;
+                        
+                  if (botComment) {
+                    github.rest.issues.updateComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      comment_id: botComment.id,
+                      body: output
+                    })
+                  } else {
+                    github.rest.issues.createComment({
+                      issue_number: context.issue.number,
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      body: output
+                    })
+                  }
